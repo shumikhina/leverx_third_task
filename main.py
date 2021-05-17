@@ -1,27 +1,32 @@
-from threading import Thread, Lock
+from multiprocessing import Lock
+from multiprocessing.pool import ThreadPool
 
 
-a = 0
+class Parameter:
+
+    def __init__(self, a=0):
+        self.a = a
+
+    def __add__(self, other: int):
+        self.a += other
+        return self
 
 
-def function(arg, lock):
-    global a
+def function(arg, param: Parameter, lock: Lock) -> Parameter:
     for _ in range(arg):
         with lock:
-            a += 1
-    return a
+            param += 1
+    return param
 
 
 def main():
-    threads = []
-    lock = Lock()
-    for i in range(5):
-        thread = Thread(target=function, args=(1000000, lock))
-        thread.start()
-        threads.append(thread)
-
-    [t.join() for t in threads]
-    print("----------------------", a)
+    a = Parameter()     # named as in example
+    pool = ThreadPool(5)
+    pool_lock = Lock()
+    pool.starmap(function, [(1000000, a, pool_lock)]*5)
+    pool.close()
+    pool.join()
+    print("----------------------", a.a)
 
 
 if __name__ == "__main__":
